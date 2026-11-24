@@ -8,4 +8,5 @@ If you introduce mistakes in it, Gitea JavaScript code wouldn't run correctly.
 	window.addEventListener('unhandledrejection', function(e) {window._globalHandlerErrors=window._globalHandlerErrors||[]; window._globalHandlerErrors.push(e);});
 </script>
 <script type="application/json" id="global-window-config">{{ctx.WindowConfig}}</script>
+<script type="module" src="https://cdn.jsdelivr.net/npm/htmx.org@4.0.2/dist/htmx.esm.min.js" integrity="sha384-PYnh6MaURFpP9898CI8TFVoT+EHl/c7nUDOzs/fFVEFKG/Y+CrRyF+b+3QzXroKM" crossorigin="anonymous"></script>
 {{ctx.ScriptImport "js/iife.ts"}}

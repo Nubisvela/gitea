@@ -1,0 +1,8 @@
+<div id="main" role="main" aria-label="{{.Title}}" class="page-content explore users">
+	{{template "explore/navbar" .}}
+	<div id="explore-container" class="ui container">
+		{{template "explore/search" .}}
+		{{template "explore/user_list" .}}
+		{{template "base/paginate" .}}
+	</div>
+</div>

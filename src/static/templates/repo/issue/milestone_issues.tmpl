@@ -1,7 +1,7 @@
 {{template "base/head" .}}
 {{$milestone := $.Milestone}}
 {{$repoLink := $.RepoLink}}
-<div role="main" aria-label="{{.Title}}" class="page-content repository milestone-issue-list">
+<div id="main" role="main" aria-label="{{.Title}}" class="page-content repository milestone-issue-list">
 	{{template "repo/header" .}}
 	<div class="ui container">
 		{{template "base/alert" .}}

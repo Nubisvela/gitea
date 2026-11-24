@@ -1,6 +1,6 @@
 {{template "base/head" .}}
 {{$commitLinkBase := print $.RepoLink (Iif $.PageIsWiki "/wiki" "") "/commit"}}
-<div role="main" aria-label="{{.Title}}" class="page-content repository diff">
+<div id="main" role="main" aria-label="{{.Title}}" class="page-content repository diff">
 	{{template "repo/header" .}}
 	<div class="ui container fluid padded">
 		<div class="ui top attached header segment">

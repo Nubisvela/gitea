@@ -1,5 +1,5 @@
 {{template "base/head" .}}
-<div role="main" aria-label="{{.Title}}" class="page-content user notification">
+<div id="main" role="main" aria-label="{{.Title}}" class="page-content user notification">
 	<div class="ui container">
 		<div class="ui compact small menu small-menu-items">
 			<a href="{{AppSubUrl}}/notifications/subscriptions" class="{{if eq .Status 1}}active {{end}}item">

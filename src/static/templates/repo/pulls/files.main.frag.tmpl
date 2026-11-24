@@ -1,0 +1,8 @@
+<div id="main" role="main" aria-label="{{.Title}}" class="page-content repository view issue pull files diff">
+	{{template "repo/header" .}}
+	<div class="ui container fluid padded">
+		{{template "repo/issue/view_title" .}}
+		{{template "repo/pulls/tab_menu" .}}
+		{{template "repo/diff/box" .}}
+	</div>
+</div>

@@ -1,13 +1,13 @@
 {{template "base/head" .}}
 {{if .ContextUser.IsOrganization}}
-	<div role="main" aria-label="{{.Title}}" class="page-content organization code">
+	<div id="main" role="main" aria-label="{{.Title}}" class="page-content organization code">
 		{{template "org/header" .}}
 		<div class="ui container">
 			{{template "shared/search/code/search" .}}
 		</div>
 	</div>
 {{else}}
-	<div role="main" aria-label="{{.Title}}" class="page-content user profile">
+	<div id="main" role="main" aria-label="{{.Title}}" class="page-content user profile">
 		<div class="ui container">
 			<div class="ui stackable grid">
 				<div class="ui four wide column">

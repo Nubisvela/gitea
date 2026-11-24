@@ -1,5 +1,5 @@
 {{template "base/head" .}}
-<div role="main" aria-label="{{.Title}}" class="page-content user signin webauthn-prompt">
+<div id="main" role="main" aria-label="{{.Title}}" class="page-content user signin webauthn-prompt">
 	<div class="ui page grid">
 		<div class="column tw-text-center">
 			{{template "user/auth/webauthn_error" .}}

@@ -119,11 +119,11 @@ func (c TemplateContext) SiteManifestURL() template.URL {
 func (c TemplateContext) ScriptImport(path string, typ ...string) template.HTML {
 	if len(typ) > 0 {
 		if typ[0] == "module" {
-			return template.HTML(`<script nonce="` + c.CspScriptNonce() + `" type="module" src="` + html.EscapeString(public.AssetURI(path)) + `"></script>`)
+			return template.HTML("<script nonce=\"" + c.CspScriptNonce() + "\" type=\"module\" src=\"" + html.EscapeString(public.AssetURI(path)) + "\"></script>")
 		}
 		panic("unsupported script type: " + typ[0])
 	}
-	return template.HTML(`<script nonce="` + c.CspScriptNonce() + `" src="` + html.EscapeString(public.AssetURI(path)) + `"></script>`)
+	return template.HTML("<script nonce=\"" + c.CspScriptNonce() + "\" src=\"" + html.EscapeString(public.AssetURI(path)) + "\"></script>")
 }
 
 func (c TemplateContext) CspScriptNonce() (ret string) {

@@ -37,6 +37,7 @@ type tmplRender struct {
 }
 
 func (h *tmplRender) Templates() *scopedtmpl.ScopedTemplate {
+	log.Warn("Templates()")
 	return h.templates.Load()
 }
 

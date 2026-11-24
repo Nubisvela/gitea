@@ -6,7 +6,7 @@
 			<div class="flex-text-block">
 				{{template "repo/icon" .}}
 				<div class="flex-text-block tw-flex-wrap tw-text-18">
-					<a class="muted tw-font-normal" href="{{.Owner.HomeLink}}">{{.Owner.Name}}</a>/<a class="muted" href="{{$.RepoLink}}">{{.Name}}</a>
+					<a class="muted tw-font-normal" href="{{.Owner.HomeLink}}">{{.Owner.Name}}</a>/<a class="muted" hx-get="{{$.RepoLink}}" hx-target="#main" hx-push-url="true">{{.Name}}</a>
 					{{if $.IsSigned}}{{/* actually the switch also works for anonymous users, GitHub only shows it for sign-in users */}}
 						<div class="ui custom dropdown" data-global-init="initRepoSwitcher" data-current-full-name="{{.FullName}}" data-tooltip-content="{{ctx.Locale.Tr "repo.switch_repository"}}"
 							data-query-url="{{AppSubUrl}}/repo/search?q={query}&uid={{.Owner.ID}}&exclusive=true" {{/* only search the repo owned by "uid" */}}
@@ -98,13 +98,13 @@
 				<div class="overflow-menu-items">
 					{{if .Permission.CanRead ctx.Consts.RepoUnitTypeCode}}
 						{{$codeLinkUseCurrentRef := and (ne .BranchName .Repository.DefaultBranch) (not $.PageIsWiki)}}
-						<a class="{{if .PageIsViewCode}}active{{end}} item" href="{{.RepoLink}}{{if $codeLinkUseCurrentRef}}/src/{{.RefTypeNameSubURL}}{{end}}" data-shortcut-keys="g c">
+						<a class="{{if .PageIsViewCode}}active{{end}} item" hx-get="{{.RepoLink}}{{if $codeLinkUseCurrentRef}}/src/{{.RefTypeNameSubURL}}{{end}}" hx-target="#main" hx-push-url="true" data-shortcut-keys="g c">
 							{{svg "octicon-code"}} {{ctx.Locale.Tr "repo.code"}}
 						</a>
 					{{end}}
 
 					{{if .Permission.CanRead ctx.Consts.RepoUnitTypeIssues}}
-						<a class="{{if .PageIsIssueList}}active{{end}} item" href="{{.RepoLink}}/issues" data-shortcut-keys="g i">
+						<a class="{{if .PageIsIssueList}}active{{end}} item" hx-get="{{.RepoLink}}/issues" hx-target="#main" hx-push-url="true" data-shortcut-keys="g i">
 							{{svg "octicon-issue-opened"}} {{ctx.Locale.Tr "repo.issues"}}
 							{{if .Repository.NumOpenIssues}}
 								<span class="ui small label">{{CountFmt .Repository.NumOpenIssues}}</span>
@@ -120,7 +120,7 @@
 					{{end}}
 
 					{{if and .Repository.CanEnablePulls (.Permission.CanRead ctx.Consts.RepoUnitTypePullRequests)}}
-						<a class="{{if .PageIsPullList}}active{{end}} item" href="{{.RepoLink}}/pulls" data-shortcut-keys="g p">
+						<a class="{{if .PageIsPullList}}active{{end}} item" hx-get="{{.RepoLink}}/pulls" hx-target="#main" hx-push-url="true" data-shortcut-keys="g p">
 							{{svg "octicon-git-pull-request"}} {{ctx.Locale.Tr "repo.pulls"}}
 							{{if .Repository.NumOpenPulls}}
 								<span class="ui small label">{{CountFmt .Repository.NumOpenPulls}}</span>
@@ -129,7 +129,7 @@
 					{{end}}
 
 					{{if and .EnableActions (.Permission.CanRead ctx.Consts.RepoUnitTypeActions) (not .IsEmptyRepo)}}
-						<a class="{{if .PageIsActions}}active{{end}} item" href="{{.RepoLink}}/actions" data-shortcut-keys="g a">
+						<a class="{{if .PageIsActions}}active{{end}} item" hx-get="{{.RepoLink}}/actions" hx-target="#main" hx-push-url="true" data-shortcut-keys="g a">
 							{{svg "octicon-play"}} {{ctx.Locale.Tr "actions.actions"}}
 							{{if .Repository.NumOpenActionRuns}}
 								<span class="ui small label">{{CountFmt .Repository.NumOpenActionRuns}}</span>
@@ -138,14 +138,14 @@
 					{{end}}
 
 					{{if .Permission.CanRead ctx.Consts.RepoUnitTypePackages}}
-						<a href="{{.RepoLink}}/packages" class="{{if .IsPackagesPage}}active{{end}} item">
+						<a class="{{if .IsPackagesPage}}active{{end}} item" hx-get="{{.RepoLink}}/packages" hx-target="#main" hx-push-url="true">
 							{{svg "octicon-package"}} {{ctx.Locale.Tr "packages.title"}}
 						</a>
 					{{end}}
 
 					{{$projectsUnit := .Repository.MustGetUnit ctx ctx.Consts.RepoUnitTypeProjects}}
 					{{if and (not ctx.Consts.RepoUnitTypeProjects.UnitGlobalDisabled) (.Permission.CanRead ctx.Consts.RepoUnitTypeProjects) ($projectsUnit.ProjectsConfig.IsProjectsAllowed "repo")}}
-						<a href="{{.RepoLink}}/projects" class="{{if .IsProjectsPage}}active{{end}} item" data-shortcut-keys="g b">
+						<a class="{{if .IsProjectsPage}}active{{end}} item" hx-get="{{.RepoLink}}/projects" hx-target="#main" hx-push-url="true" data-shortcut-keys="g b">
 							{{svg "octicon-project"}} {{ctx.Locale.Tr "repo.projects"}}
 							{{if .Repository.NumOpenProjects}}
 								<span class="ui small label">{{CountFmt .Repository.NumOpenProjects}}</span>
@@ -154,7 +154,7 @@
 					{{end}}
 
 					{{if and (.Permission.CanRead ctx.Consts.RepoUnitTypeReleases) (not .IsEmptyRepo)}}
-					<a class="{{if or .PageIsReleaseList .PageIsTagList}}active{{end}} item" href="{{.RepoLink}}/releases" data-shortcut-keys="g r">
+					<a class="{{if or .PageIsReleaseList .PageIsTagList}}active{{end}} item" hx-get="{{.RepoLink}}/releases" hx-target="#main" hx-push-url="true" data-shortcut-keys="g r">
 						{{svg "octicon-tag"}} {{ctx.Locale.Tr "repo.releases"}}
 						{{if .NumReleases}}
 							<span class="ui small label">{{CountFmt .NumReleases}}</span>
@@ -163,7 +163,7 @@
 					{{end}}
 
 					{{if .Permission.CanRead ctx.Consts.RepoUnitTypeWiki}}
-						<a class="{{if .PageIsWiki}}active{{end}} item" href="{{.RepoLink}}/wiki" data-shortcut-keys="g w">
+						<a class="{{if .PageIsWiki}}active{{end}} item" hx-get="{{.RepoLink}}/wiki" hx-target="#main" hx-push-url="true" data-shortcut-keys="g w">
 							{{svg "octicon-book"}} {{ctx.Locale.Tr "repo.wiki"}}
 						</a>
 					{{end}}
@@ -175,7 +175,7 @@
 					{{end}}
 
 					{{if and (.Permission.CanReadAny ctx.Consts.RepoUnitTypePullRequests ctx.Consts.RepoUnitTypeIssues ctx.Consts.RepoUnitTypeReleases ctx.Consts.RepoUnitTypeCode) (not .IsEmptyRepo)}}
-						<a class="{{if .PageIsActivity}}active{{end}} item" href="{{.RepoLink}}/activity">
+						<a class="{{if .PageIsActivity}}active{{end}} item" hx-get="{{.RepoLink}}/activity" hx-target="#main" hx-push-url="true">
 							{{svg "octicon-pulse"}} {{ctx.Locale.Tr "repo.activity"}}
 						</a>
 					{{end}}

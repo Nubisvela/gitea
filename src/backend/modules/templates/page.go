@@ -37,6 +37,7 @@ func (r *pageRenderer) funcMapDummy() template.FuncMap {
 }
 
 func (r *pageRenderer) TemplateLookup(tmpl string, templateCtx context.Context) (TemplateExecutor, error) { //nolint:revive // we don't use ctx, only pass it to the template executor
+	log.Warn("TemplateLookup(%s)", tmpl)
 	tmpls := r.tmplRenderer.Templates()
 	if tmpls == nil {
 		return nil, fmt.Errorf("no templates defined for %s", tmpl)

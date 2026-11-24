@@ -1,30 +1,30 @@
 <nav id="navbar" aria-label="{{ctx.Locale.Tr "aria.navbar"}}">
-	<a class="item" id="navbar-logo" href="{{AppSubUrl}}/" aria-label="{{if .IsSigned}}{{ctx.Locale.Tr "dashboard"}}{{else}}{{ctx.Locale.Tr "home_title"}}{{end}}">
+	<a class="item" id="navbar-logo" hx-get="{{AppSubUrl}}/" hx-target:inherited="#main" hx-push-url="true" aria-label="{{if .IsSigned}}{{ctx.Locale.Tr "dashboard"}}{{else}}{{ctx.Locale.Tr "home_title"}}{{end}}">
 		<img width="30" height="30" src="{{AssetUrlPrefix}}/img/logo.svg" alt="{{ctx.Locale.Tr "logo"}}" aria-hidden="true">
 	</a>
 
 	<button type="button" class="item btn only-mobile" id="navbar-expand-toggle" aria-label="{{ctx.Locale.Tr "home.nav_menu"}}">{{svg "octicon-three-bars"}}</button>
 
-	<div class="navbar-list navbar-left">
+	<div class="navbar-list navbar-left" hx-target:inherited="#main">
 		{{if and .IsSigned .MustChangePassword}}
 			{{/* No links */}}
 		{{else if .IsSigned}}
 			{{if not ctx.Consts.RepoUnitTypeIssues.UnitGlobalDisabled}}
-				<a class="item{{if .PageIsIssues}} active{{end}}" href="{{AppSubUrl}}/issues">{{ctx.Locale.Tr "issues"}}</a>
+				<a class="item{{if .PageIsIssues}} active{{end}}" hx-get="{{AppSubUrl}}/issues" hx-push-url="true">{{ctx.Locale.Tr "issues"}}</a>
 			{{end}}
 			{{if not ctx.Consts.RepoUnitTypePullRequests.UnitGlobalDisabled}}
-				<a class="item{{if .PageIsPulls}} active{{end}}" href="{{AppSubUrl}}/pulls">{{ctx.Locale.Tr "pull_requests"}}</a>
+				<a class="item{{if .PageIsPulls}} active{{end}}" hx-get="{{AppSubUrl}}/pulls" hx-push-url="true">{{ctx.Locale.Tr "pull_requests"}}</a>
 			{{end}}
 			{{if not (and ctx.Consts.RepoUnitTypeIssues.UnitGlobalDisabled ctx.Consts.RepoUnitTypePullRequests.UnitGlobalDisabled)}}
 				{{if .ShowMilestonesDashboardPage}}
-					<a class="item{{if .PageIsMilestonesDashboard}} active{{end}}" href="{{AppSubUrl}}/milestones">{{ctx.Locale.Tr "milestones"}}</a>
+					<a class="item{{if .PageIsMilestonesDashboard}} active{{end}}" hx-get="{{AppSubUrl}}/milestones" hx-push-url="true">{{ctx.Locale.Tr "milestones"}}</a>
 				{{end}}
 			{{end}}
-			<a class="item{{if .PageIsExplore}} active{{end}}" href="{{AppSubUrl}}/explore/repos">{{ctx.Locale.Tr "explore_title"}}</a>
+			<a class="item{{if .PageIsExplore}} active{{end}}" hx-get="{{AppSubUrl}}/explore/repos" hx-push-url="true">{{ctx.Locale.Tr "explore_title"}}</a>
 		{{else if .IsLandingPageOrganizations}}
-			<a class="item{{if .PageIsExplore}} active{{end}}" href="{{AppSubUrl}}/explore/organizations">{{ctx.Locale.Tr "explore_title"}}</a>
+			<a class="item{{if .PageIsExplore}} active{{end}}" hx-get="{{AppSubUrl}}/explore/organizations" hx-push-url="true">{{ctx.Locale.Tr "explore_title"}}</a>
 		{{else}}
-			<a class="item{{if .PageIsExplore}} active{{end}}" href="{{AppSubUrl}}/explore/repos">{{ctx.Locale.Tr "explore_title"}}</a>
+			<a class="item{{if .PageIsExplore}} active{{end}}" hx-get="{{AppSubUrl}}/explore/repos" hx-push-url="true">{{ctx.Locale.Tr "explore_title"}}</a>
 		{{end}}
 
 		{{template "custom/extra_links" .}}

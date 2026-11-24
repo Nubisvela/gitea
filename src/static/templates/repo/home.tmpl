@@ -1,6 +1,6 @@
 {{template "base/head" .}}
 {{$showSidebar := and (not .TreeNames) (not .HideRepoInfo) (not .IsBlame)}}
-<div role="main" aria-label="{{.Title}}" class="page-content repository file list {{if .IsBlame}}blame{{end}}">
+<div id="main" role="main" aria-label="{{.Title}}" class="page-content repository file list {{if .IsBlame}}blame{{end}}">
 	{{template "repo/header" .}}
 	<div class="ui container {{if or .TreeNames .IsBlame}}fluid padded{{end}}">
 		{{template "base/alert" .}}

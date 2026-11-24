@@ -75,8 +75,59 @@ func (ctx *Context) RedirectToCurrentSite(location ...string) {
 
 const tplStatus500 templates.TplName = "status/500"
 
-// HTML calls Context.HTML and renders the template to HTTP response
+// HTML calls Context.HTML and renders the optional template to HTTP response
+//
+// To compatible with HTMX, depends on the request header "Hx-request",
+// if the request is Hx request (Hx-request: true),
+// it will render the fragment template instead.
+//
+// - status: HTTP status code
+// - name: template name
 func (ctx *Context) HTML(status int, name templates.TplName) {
+	if ctx.Req.Header.Get("Hx-request") == "true" {
+		// HTMX fragment template pattern: "<original_template_name>.<target_id>.frag".
+		// <original_template_name> is the original template name.
+		// <target_id> is the target ID of the fragment, could be empty string.
+		// e.g. "explore/repos.main.frag"
+		hxTarget := ctx.Req.Header.Get("Hx-target")
+		hxTargetSlice := strings.Split(hxTarget, "#")
+		hxTarget = hxTargetSlice[len(hxTargetSlice)-1]
+		if hxTarget != "" {
+			hxTarget = "." + hxTarget
+		}
+		name = templates.TplName(string(name) + hxTarget + ".frag")
+	}
+
+	log.Debug("Template: %s", name)
+
+	tmplStartTime := time.Now()
+	if !setting.IsProd {
+		ctx.Data["TemplateName"] = name
+	}
+	ctx.Data["TemplateLoadTimes"] = func() string {
+		return strconv.FormatInt(time.Since(tmplStartTime).Nanoseconds()/1e6, 10) + "ms"
+	}
+
+	err := ctx.Render.HTML(ctx.Resp, status, name, ctx.Data, ctx.TemplateContext)
+	if err == nil || httplib.IsClientOrNetworkError(ctx, err) {
+		return
+	}
+
+	// if rendering fails, show error page
+	if name != tplStatus500 {
+		err = fmt.Errorf("failed to render template: %s, error: %s", name, templates.HandleTemplateRenderingError(err))
+		ctx.ServerErrorAuto(err) // show the 500 error page
+	} else {
+		ctx.PlainText(http.StatusInternalServerError, "Unable to render status/500 page, the template system is broken, or Gitea can't find your template files.")
+		return
+	}
+}
+
+// EntireHTML calls Context.HTML and renders the entire HTML template to HTTP response
+//
+// - status: HTTP status code
+// - name: template name
+func (ctx *Context) EntireHTML(status int, name templates.TplName) {
 	log.Debug("Template: %s", name)
 
 	tmplStartTime := time.Now()
@@ -119,7 +170,7 @@ func (ctx *Context) RenderWithErrDeprecated[T string | template.HTML](msg T, tpl
 		middleware.AssignForm(form, ctx.Data)
 	}
 	ctx.Flash.Error(msg, true)
-	ctx.HTML(http.StatusOK, tpl)
+	ctx.EntireHTML(http.StatusOK, tpl)
 }
 
 // NotFound displays a 404 (Not Found) page.
@@ -139,7 +190,7 @@ func (ctx *Context) renderError4xx(skip, status int, msg string) {
 	ctx.Data["ErrorCodeStatus"] = status
 	ctx.Data["ErrorCodeText"] = http.StatusText(status)
 	ctx.Data["ErrorMsg"] = "" // TODO: USER-ERROR-HTML-DISPLAY: the template never renders this message, need to fix in the future (and show safe messages to end users)
-	ctx.HTML(status, "status/4xx")
+	ctx.EntireHTML(status, "status/4xx")
 }
 
 func (ctx *Context) buildServerErrorMessageForUser(msg string, err error) (userErrorMsg string) {
@@ -238,5 +289,5 @@ func (ctx *Context) ServerErrorAuto(err error) {
 
 	ctx.Data["Title"] = "Internal Server Error"
 	ctx.Data["ErrorMsg"] = userErrorMsg
-	ctx.HTML(http.StatusInternalServerError, tplStatus500)
+	ctx.EntireHTML(http.StatusInternalServerError, tplStatus500)
 }

@@ -1,20 +1,20 @@
 <overflow-menu class="ui secondary pointing tabular top attached borderless menu secondary-nav">
-	<div class="overflow-menu-items tw-justify-center">
-		<a class="{{if .PageIsExploreRepositories}}active {{end}}item" href="{{AppSubUrl}}/explore/repos">
+	<div class="overflow-menu-items tw-justify-center" hx-target:inherited="#main">
+		<a class="{{if .PageIsExploreRepositories}}active {{end}}item" hx-get="{{AppSubUrl}}/explore/repos" hx-push-url="true">
 			{{svg "octicon-repo"}} {{ctx.Locale.Tr "explore.repos"}}
 		</a>
 		{{if not .UsersPageIsDisabled}}
-			<a class="{{if .PageIsExploreUsers}}active {{end}}item" href="{{AppSubUrl}}/explore/users">
+			<a class="{{if .PageIsExploreUsers}}active {{end}}item" hx-get="{{AppSubUrl}}/explore/users" hx-push-url="true">
 				{{svg "octicon-person"}} {{ctx.Locale.Tr "explore.users"}}
 			</a>
 		{{end}}
 		{{if not .OrganizationsPageIsDisabled}}
-		<a class="{{if .PageIsExploreOrganizations}}active {{end}}item" href="{{AppSubUrl}}/explore/organizations">
+		<a class="{{if .PageIsExploreOrganizations}}active {{end}}item" hx-get="{{AppSubUrl}}/explore/organizations" hx-push-url="true">
 			{{svg "octicon-organization"}} {{ctx.Locale.Tr "explore.organizations"}}
 		</a>
 		{{end}}
 		{{if and (not ctx.Consts.RepoUnitTypeCode.UnitGlobalDisabled) .IsRepoIndexerEnabled (not .CodePageIsDisabled)}}
-		<a class="{{if .PageIsExploreCode}}active {{end}}item" href="{{AppSubUrl}}/explore/code">
+		<a class="{{if .PageIsExploreCode}}active {{end}}item" hx-get="{{AppSubUrl}}/explore/code" hx-push-url="true">
 			{{svg "octicon-code"}} {{ctx.Locale.Tr "explore.code"}}
 		</a>
 		{{end}}
