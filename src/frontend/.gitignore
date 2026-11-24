@@ -1,0 +1,12 @@
+/node_modules
+/.venv
+/yarn.lock
+/yarn-error.log
+/npm-debug.log*
+/.pnpm-store
+/public/assets/img/avatar
+/public/assets/.vite
+/public/assets/js
+/public/assets/css
+/public/assets/fonts
+/public/assets/licenses.txt

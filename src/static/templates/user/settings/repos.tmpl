@@ -1,0 +1,42 @@
+{{template "user/settings/layout_head" (dict "pageClass" "user settings repos")}}
+	<div class="user-setting-content">
+		<h4 class="ui top attached header">
+			{{ctx.Locale.Tr "settings.repos"}}
+		</h4>
+		<div class="ui attached segment">
+			{{if .Repos}}
+				<div class="ui list">
+					{{range .Repos}}
+						<div class="item">
+							<div class="content flex-text-block">
+								{{if .IsPrivate}}
+									{{svg "octicon-lock" 16 "tw-text-gold"}}
+								{{else if .IsFork}}
+									{{svg "octicon-repo-forked"}}
+								{{else if .IsMirror}}
+									{{svg "octicon-mirror"}}
+								{{else if .IsTemplate}}
+									{{svg "octicon-repo-template"}}
+								{{else}}
+									{{svg "octicon-repo"}}
+								{{end}}
+								<a class="name" href="{{.Link}}">{{.OwnerName}}/{{.Name}}</a>
+								<span>{{FormatByteSize .Size}}</span>
+								{{if .IsFork}}
+									{{ctx.Locale.Tr "repo.forked_from"}}
+									<span><a href="{{.BaseRepo.Link}}">{{.BaseRepo.OwnerName}}/{{.BaseRepo.Name}}</a></span>
+								{{end}}
+							</div>
+						</div>
+					{{end}}
+				</div>
+				{{template "base/paginate" .}}
+			{{else}}
+				<div class="item">
+					{{ctx.Locale.Tr "settings.repos_none"}}
+				</div>
+			{{end}}
+		</div>
+	</div>
+
+{{template "user/settings/layout_footer" .}}

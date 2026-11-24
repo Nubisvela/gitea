@@ -1,0 +1,129 @@
+{
+  "moved": [
+    {
+      "upstream": ".golangci.yml",
+      "local": "src/backend/.golangci.yml"
+    },
+    {
+      "upstream": "build",
+      "local": "src/backend/build"
+    },
+    {
+      "upstream": "cmd",
+      "local": "src/backend/cmd"
+    },
+    {
+      "upstream": "modelmigration",
+      "local": "src/backend/modelmigration"
+    },
+    {
+      "upstream": "models",
+      "local": "src/backend/models"
+    },
+    {
+      "upstream": "modules",
+      "local": "src/backend/modules"
+    },
+    {
+      "upstream": "routers",
+      "local": "src/backend/routers"
+    },
+    {
+      "upstream": "services",
+      "local": "src/backend/services"
+    },
+    {
+      "upstream": "main_timezones.go",
+      "local": "src/backend/main_timezones.go"
+    },
+    {
+      "upstream": "main.go",
+      "local": "src/backend/main.go"
+    },
+    {
+      "upstream": "go.sum",
+      "local": "src/backend/go.sum"
+    },
+    {
+      "upstream": "go.mod",
+      "local": "src/backend/go.mod"
+    },
+    {
+      "upstream": "assets",
+      "local": "src/frontend/assets"
+    },
+    {
+      "upstream": "public",
+      "local": "src/frontend/public"
+    },
+    {
+      "upstream": "web_src",
+      "local": "src/frontend"
+    },
+    {
+      "upstream": "eslint.config.ts",
+      "local": "src/frontend/eslint.config.ts"
+    },
+    {
+      "upstream": "eslint.json.config.ts",
+      "local": "src/frontend/eslint.json.config.ts"
+    },
+    {
+      "upstream": "vitest.config.ts",
+      "local": "src/frontend/vitest.config.ts"
+    },
+    {
+      "upstream": "package.json",
+      "local": "src/frontend/package.json"
+    },
+    {
+      "upstream": "package-lock.json",
+      "local": "src/frontend/package-lock.json"
+    },
+    {
+      "upstream": "tsconfig.json",
+      "local": "src/frontend/tsconfig.json"
+    },
+    {
+      "upstream": "playwright.config.ts",
+      "local": "src/frontend/playwright.config.ts"
+    },
+    {
+      "upstream": "pnpm-lock.yaml",
+      "local": "src/frontend/pnpm-lock.yaml"
+    },
+    {
+      "upstream": "pnpm-workspace.yaml",
+      "local": "src/frontend/pnpm-workspace.yaml"
+    },
+    {
+      "upstream": "stylelint.config.ts",
+      "local": "src/frontend/stylelint.config.ts"
+    },
+    {
+      "upstream": "tailwind.config.ts",
+      "local": "src/frontend/tailwind.config.ts"
+    },
+    {
+      "upstream": "types.d.ts",
+      "local": "src/frontend/types.d.ts"
+    },
+    {
+      "upstream": "tools/shared.ts",
+      "local": "src/frontend/tools/shared.ts"
+    },
+    {
+      "upstream": "tools/eslint-rules",
+      "local": "src/frontend/tools/eslint-rules"
+    },
+    {
+      "upstream": "options",
+      "local": "src/static/options"
+    },
+    {
+      "upstream": "templates",
+      "local": "src/static/templates"
+    }
+  ],
+  "ignored": []
+}

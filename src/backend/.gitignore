@@ -1,0 +1,4 @@
+/modules/migration/bindata.*
+/modules/options/bindata.*
+/modules/public/bindata.*
+/modules/templates/bindata.*
