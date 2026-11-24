@@ -53,20 +53,19 @@ cpu.out
 /log
 /tests/integration/gitea-integration-*
 /tests/*.ini
-/node_modules
-/yarn.lock
-/yarn-error.log
-/npm-debug.log*
-/pnpm-debug.log*
-/public/assets/js
-/public/assets/css
-/public/assets/fonts
-/public/assets/img/avatar
+/src/frontend/node_modules
+/src/frontend/yarn.lock
+/src/frontend/yarn-error.log
+/src/frontend/npm-debug.log*
+/src/frontend/pnpm-debug.log*
+/src/frontend/public/assets/js
+/src/frontend/public/assets/css
+/src/frontend/public/assets/fonts
+/src/frontend/public/assets/img/avatar
 /vendor
 /.air
 /.go-licenses
 /Dockerfile
-/Dockerfile.rootless
 /.venv
 
 # Files and folders that were previously generated

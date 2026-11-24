@@ -59,6 +59,10 @@ build-backend-cgo cgo_cflags='' tags='':
   fi
   CGO_ENABLED='1' CGO_CFLAGS='{{ cgo_cflags }}' go build -C ./src/backend -v -tags '{{ tags }}' -ldflags '-s -w' -o ../../gitea .
 
+# Build Docker image
+docker-build tag='master-test':
+  docker build -t nubisvela/gitea:{{ tag }} .
+
 # Clean up dependencies, build artifacts, generated files and runtime data
 clean:
   rm -rf gitea data custom/conf/app.ini
