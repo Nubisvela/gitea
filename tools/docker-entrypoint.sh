@@ -1,4 +1,10 @@
-#!/bin/bash
+#!/bin/sh
+
+# Protect against buggy runc in docker <20.10.6 causing problems in with Alpine >= 3.14
+if [ ! -x /bin/sh ]; then
+  echo "Executable test for /bin/sh failed. Your Docker version is too old to run Alpine 3.14+ and Gitea. You must upgrade Docker.";
+  exit 1;
+fi
 
 # Prepare git folder
 mkdir -p "${HOME}" && chmod 0700 "${HOME}"
@@ -13,7 +19,6 @@ if [ ! -w "${GITEA_TEMP}" ]; then echo "${GITEA_TEMP} is not writable"; exit 1; 
 
 #Prepare config file
 if [ ! -f "${GITEA_APP_INI}" ]; then
-
     #Prepare config file folder
     GITEA_APP_INI_DIR=$(dirname "${GITEA_APP_INI}")
     mkdir -p "${GITEA_APP_INI_DIR}" && chmod 0700 "${GITEA_APP_INI_DIR}"
@@ -48,4 +53,10 @@ if [ ! -f "${GITEA_APP_INI}" ]; then
 fi
 
 # Replace app.ini settings with env variables in the form GITEA__SECTION_NAME__KEY_NAME
-environment-to-ini --config "${GITEA_APP_INI}"
+exec /usr/local/bin/gitea config edit-ini --in-place --apply-env "$@"
+
+if [ $# -gt 0 ]; then
+    exec "$@"
+else
+    exec /usr/local/bin/gitea -c "${GITEA_APP_INI}" web
+fi

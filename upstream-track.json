@@ -125,5 +125,9 @@
       "local": "src/static/templates"
     }
   ],
-  "ignored": []
+  "ignored": [
+    "docker",
+    "Dockerfile",
+    "Dockerfile.rootless"
+  ]
 }
