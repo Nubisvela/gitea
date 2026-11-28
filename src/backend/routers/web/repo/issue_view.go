@@ -119,24 +119,11 @@ func roleDescriptor(ctx *context.Context, repo *repo_model.Repository, poster *u
 
 // checkBlockedByIssues return canRead and notPermitted
 func checkBlockedByIssues(ctx *context.Context, blockers []*issues_model.DependencyInfo) (canRead, notPermitted []*issues_model.DependencyInfo) {
-	repoPerms := make(map[int64]access_model.Permission)
-	repoPerms[ctx.Repo.Repository.ID] = ctx.Repo.Permission
 	for _, blocker := range blockers {
-		// Get the permissions for this repository
-		// If the repo ID exists in the map, return the exist permissions
-		// else get the permission and add it to the map
-		var perm access_model.Permission
-		existPerm, ok := repoPerms[blocker.RepoID]
-		if ok {
-			perm = existPerm
-		} else {
-			var err error
-			perm, err = access_model.GetDoerRepoPermission(ctx, &blocker.Repository, ctx.Doer)
-			if err != nil {
-				ctx.ServerErrorAuto(err)
-				return nil, nil
-			}
-			repoPerms[blocker.RepoID] = perm
+		perm, err := ctx.DoerRepoPermission(&blocker.Repository)
+		if err != nil {
+			ctx.ServerErrorAuto(err)
+			return nil, nil
 		}
 		if perm.CanReadIssuesOrPulls(blocker.Issue.IsPull) {
 			canRead = append(canRead, blocker)
@@ -834,19 +821,9 @@ func (prInfo *pullRequestViewInfo) prepareMergeBox(ctx *context.Context, issue *
 
 	pull_service.StartPullRequestCheckOnView(ctx, pull)
 
-	if !prInfo.IsPullRequestBroken {
-		data.ShowUpdatePullInfo = pull.CommitsBehind > 0 && !issue.IsClosed && !pull.IsChecking() && !pull.IsFilesConflicted() && !prInfo.IsPullRequestBroken
-		prInfo.preparePullUpdateActions(ctx)
-		if ctx.Written() {
-			return
-		}
-	}
-
 	if ctx.IsSigned {
-		if err := pull.LoadHeadRepo(ctx); err != nil {
-			log.Error("LoadHeadRepo: %v", err)
-		} else if pull.HeadRepo != nil && issue.IsClosed {
-			perm, err := access_model.GetDoerRepoPermission(ctx, pull.HeadRepo, ctx.Doer)
+		if pull.HeadRepo != nil && issue.IsClosed {
+			perm, err := ctx.DoerRepoPermission(pull.HeadRepo)
 			if err != nil {
 				ctx.ServerErrorAuto(err)
 				return
@@ -873,24 +850,17 @@ func (prInfo *pullRequestViewInfo) prepareMergeBox(ctx *context.Context, issue *
 			}
 		}
 
-		if err := pull.LoadBaseRepo(ctx); err != nil {
-			log.Error("LoadBaseRepo: %v", err)
-		}
-		perm, err := access_model.GetDoerRepoPermission(ctx, pull.BaseRepo, ctx.Doer)
+		var err error
+		data.hasPermToMerge, err = pull_service.IsUserAllowedToMerge(ctx, pull, ctx.Repo.Permission, ctx.Doer)
 		if err != nil {
 			ctx.ServerErrorAuto(err)
 			return
 		}
-		data.hasPermToMerge, err = pull_service.IsUserAllowedToMerge(ctx, pull, perm, ctx.Doer)
-		if err != nil {
-			ctx.ServerErrorAuto(err)
-			return
-		}
-		if !data.hasPermToMerge && perm.CanWrite(unit.TypeCode) {
+		if !data.hasPermToMerge && ctx.Repo.Permission.CanWrite(unit.TypeCode) {
 			data.mergeBlockers = append(data.mergeBlockers, ctx.Locale.Tr("repo.pulls.no_merge_access"))
 		}
 
-		if ctx.Data["CanMarkConversation"], err = issues_model.CanMarkConversation(ctx, issue, ctx.Doer); err != nil {
+		if ctx.Data["CanMarkConversation"], err = issues_model.CanMarkConversation(ctx, issue, ctx.Doer, ctx.Repo.Permission); err != nil {
 			ctx.ServerErrorAuto(err)
 			return
 		}
@@ -906,15 +876,31 @@ func (prInfo *pullRequestViewInfo) prepareMergeBox(ctx *context.Context, issue *
 		return
 	}
 
-	prInfo.prepareMergeBoxProtectionChecks(ctx)
-	if ctx.Written() {
+	rule, err := git_model.GetFirstMatchProtectedBranchRule(ctx, ctx.Repo.Repository.ID, pull.BaseBranch)
+	if err != nil {
+		ctx.ServerErrorAuto(err)
 		return
 	}
-
-	data.ShowPullCommands = pull.HeadRepo != nil
-	data.ShowMergeInstructions = data.ShowPullCommands && ctx.Repo.Permission.CanWrite(unit.TypeCode) &&
-		(prInfo.ProtectedBranchRule == nil || prInfo.ProtectedBranchRule.CanUserPush(ctx, ctx.Doer, ctx.Repo.Permission))
-
+	prInfo.ProtectedBranchRule = rule
+	if rule != nil {
+		rule.Repo = pull.BaseRepo
+	}
+	if rule != nil && rule.RequireMergeQueue && !pull.HasMerged {
+		data.MergeQueueLink = ctx.Repo.RepoLink + "/queue/" + util.PathEscapeSegments(pull.BaseBranch)
+		if prInfo.queueEntry != nil {
+			prInfo.prepareQueuedMergeBox(ctx)
+			return
+		}
+	}
+	if pull.CommitsBehind > 0 && !prInfo.IsPullRequestBroken && !pull.IsChecking() && !pull.IsFilesConflicted() {
+		data.ShowUpdatePullInfo = true
+		prInfo.preparePullUpdateActions(ctx)
+		if ctx.Written() {
+			return
+		}
+	}
+	prInfo.prepareMergeBoxStatusCheckData(ctx)
+	prInfo.prepareMergeBoxProtectedRules(ctx)
 	prInfo.prepareMergeBoxCommitSigning(ctx)
 
 	prConfig := issue.Repo.MustGetUnit(ctx, unit.TypePullRequests).PullRequestsConfig()
@@ -935,9 +921,12 @@ func (prInfo *pullRequestViewInfo) prepareMergeBox(ctx *context.Context, issue *
 	// admin can merge without checks, writer can merge when checks succeed
 	// admin and writer both can make an auto merge schedule (not affected by overridable blockers)
 	data.canBypassProtection = isRepoAdmin
-	if ctx.IsSigned && prInfo.ProtectedBranchRule != nil {
-		data.canBypassProtection = git_model.CanBypassBranchProtection(ctx, prInfo.ProtectedBranchRule, ctx.Doer, isRepoAdmin)
+	if ctx.IsSigned && rule != nil {
+		data.canBypassProtection = git_model.CanBypassBranchProtection(ctx, rule, ctx.Doer, isRepoAdmin)
 	}
+	data.ShowPullCommands = pull.HeadRepo != nil
+	data.ShowMergeInstructions = data.ShowPullCommands && ctx.Repo.Permission.CanWrite(unit.TypeCode) &&
+		(data.MergeQueueLink == "" || data.canBypassProtection) && (rule == nil || rule.CanUserPush(ctx, ctx.Doer, ctx.Repo.Permission))
 
 	if _, data.AutoMerge, err = pull_model.GetScheduledMergeByPullID(ctx, pull.ID); err != nil {
 		ctx.ServerErrorAuto(err)
@@ -960,7 +949,7 @@ func (prInfo *pullRequestViewInfo) prepareMergeBox(ctx *context.Context, issue *
 func (prInfo *pullRequestViewInfo) preparePullUpdateActions(ctx *context.Context) {
 	pull := prInfo.issue.PullRequest
 	data := prInfo.MergeBoxData
-	userUpdateStyles, err := pull_service.CheckUserAllowedToUpdate(ctx, pull, ctx.Doer)
+	userUpdateStyles, err := pull_service.CheckUserAllowedToUpdate(ctx, pull, ctx.Doer, ctx.Repo.Permission)
 	if err != nil {
 		ctx.ServerErrorAuto(err)
 		return
@@ -998,28 +987,6 @@ func (prInfo *pullRequestViewInfo) preparePullUpdateActions(ctx *context.Context
 		data.UpdatePrimaryAction = data.UpdateStyleOptions[0]
 	}
 	data.UpdatePrimaryAction.Selected = true
-}
-
-func (prInfo *pullRequestViewInfo) prepareMergeBoxProtectionChecks(ctx *context.Context) {
-	pb, err := git_model.GetFirstMatchProtectedBranchRule(ctx, ctx.Repo.Repository.ID, prInfo.issue.PullRequest.BaseBranch)
-	if err != nil {
-		ctx.ServerErrorAuto(err)
-		return
-	}
-	if pb != nil {
-		pb.Repo = prInfo.issue.PullRequest.BaseRepo
-		prInfo.ProtectedBranchRule = pb
-	}
-
-	prInfo.prepareMergeBoxStatusCheckData(ctx)
-	if ctx.Written() {
-		return
-	}
-
-	prInfo.prepareMergeBoxProtectedRules(ctx)
-	if ctx.Written() {
-		return
-	}
 }
 
 func (prInfo *pullRequestViewInfo) prepareMergeBoxProtectedRules(ctx *context.Context) {

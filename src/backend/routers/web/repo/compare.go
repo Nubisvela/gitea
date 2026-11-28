@@ -181,7 +181,7 @@ func (cpi *comparePageInfoType) parseCompareInfo(ctx *context.Context, comparePa
 	isSameRepo := baseRepo.ID == headRepo.ID
 	if !isSameRepo {
 		// Assert ctx.Doer has permission to read headRepo's codes
-		permHead, err := access_model.GetDoerRepoPermission(ctx, headRepo, ctx.Doer)
+		permHead, err := ctx.DoerRepoPermission(headRepo)
 		if err != nil {
 			return err
 		}
@@ -447,6 +447,7 @@ func (cpi *comparePageInfoType) prepareCompareDiff(ctx *context.Context, whitesp
 			MaxLines:          maxLines,
 			MaxLineCharacters: setting.Git.MaxGitDiffLineCharacters,
 			MaxFiles:          maxFiles,
+			EnableRichDiff:    true,
 		}, ctx.FormStrings("files")...)
 	if err != nil {
 		ctx.ServerErrorAuto(err)

@@ -46,6 +46,7 @@ import (
 	"gitea.dev/services/forms"
 	git_service "gitea.dev/services/git"
 	"gitea.dev/services/gitdiff"
+	"gitea.dev/services/mergequeue"
 	"gitea.dev/services/notifications"
 	notify_service "gitea.dev/services/notify"
 	pull_service "gitea.dev/services/pull"
@@ -270,6 +271,9 @@ type pullMergeBoxData struct {
 	CanCancelAutoMerge bool
 
 	MergeFormProps        map[string]any
+	MergeQueueLink        string
+	IsQueued              bool
+	CanDequeue            bool
 	ShowPullCommands      bool
 	ShowMergeInstructions bool
 	AutodetectManualMerge bool
@@ -311,6 +315,7 @@ type pullRequestViewInfo struct {
 	MergeBoxData        *pullMergeBoxData
 
 	workInProgressPrefix string
+	queueEntry           *pull_model.MergeQueueEntry
 }
 
 func newPullRequestViewInfo() *pullRequestViewInfo {
@@ -480,6 +485,11 @@ func getViewPullHeadBranchCommitID(ctx *context.Context, pull *issues_model.Pull
 
 func (prInfo *pullRequestViewInfo) prepareViewOpenPullInfo(ctx *context.Context) {
 	pull := prInfo.issue.PullRequest
+	var err error
+	if prInfo.queueEntry, err = pull_model.GetMergeQueueEntryByPullID(ctx, pull.ID); err != nil {
+		ctx.ServerErrorAuto(err)
+		return
+	}
 	if exist, _ := git_model.IsBranchExist(ctx, pull.BaseRepo.ID, pull.BaseBranch); !exist {
 		// if base branch doesn't exist, prepare from the merge base
 		ctx.Data["BaseBranchNotExist"] = true
@@ -504,6 +514,7 @@ func (prInfo *pullRequestViewInfo) prepareViewOpenPullInfo(ctx *context.Context)
 		ctx.Data["IsPullWorkInProgress"] = prInfo.workInProgressPrefix != ""
 		ctx.Data["WorkInProgressPrefix"] = prInfo.workInProgressPrefix
 	}
+	ctx.Data["IsPullQueued"] = prInfo.queueEntry != nil
 }
 
 func createRequiredContextMatcher(requiredContext string) func(string) bool {
@@ -736,6 +747,7 @@ func viewPullFiles(ctx *context.Context, beforeCommitID, afterCommitID string) {
 		MaxLines:          maxLines,
 		MaxLineCharacters: setting.Git.MaxGitDiffLineCharacters,
 		MaxFiles:          maxFiles,
+		EnableRichDiff:    ctx.Repo.Permission.CanRead(unit.TypeCode),
 	}
 
 	diff, err := gitdiff.GetDiffForRender(ctx, ctx.Repo.RepoLink, gitRepo, diffOptions, files...)
@@ -832,7 +844,7 @@ func viewPullFiles(ctx *context.Context, beforeCommitID, afterCommitID string) {
 	ctx.Data["DiffNotAvailable"] = diffShortStat.NumFiles == 0
 	ctx.Data["ShowDiffSummaryInToolbar"] = diffShortStat.NumFiles != 0
 
-	if ctx.Data["CanMarkConversation"], err = issues_model.CanMarkConversation(ctx, issue, ctx.Doer); err != nil {
+	if ctx.Data["CanMarkConversation"], err = issues_model.CanMarkConversation(ctx, issue, ctx.Doer, ctx.Repo.Permission); err != nil {
 		ctx.ServerErrorAuto(err)
 		return
 	}
@@ -884,28 +896,18 @@ func viewPullFiles(ctx *context.Context, beforeCommitID, afterCommitID string) {
 	ctx.Data["CanBlockUser"] = func(blocker, blockee *user_model.User) bool {
 		return user_service.CanBlockUser(ctx, ctx.Doer, blocker, blockee)
 	}
-	if isShowAllCommits && pull.Flow == issues_model.PullRequestFlowGithub {
-		if err := pull.LoadHeadRepo(ctx); err != nil {
+	if isShowAllCommits && pull.Flow == issues_model.PullRequestFlowGithub && pull.HeadRepo != nil && !pull.HasMerged && ctx.Doer != nil {
+		headPerm, err := ctx.DoerRepoPermission(pull.HeadRepo)
+		if err != nil {
 			ctx.ServerErrorAuto(err)
 			return
 		}
-
-		if pull.HeadRepo != nil {
-			if !pull.HasMerged && ctx.Doer != nil {
-				headPerm, err := access_model.GetDoerRepoPermission(ctx, pull.HeadRepo, ctx.Doer)
-				if err != nil {
-					ctx.ServerErrorAuto(err)
-					return
-				}
-
-				if issues_model.CanMaintainerWriteToBranch(ctx, headPerm, pull.HeadBranch, ctx.Doer) {
-					ctx.Data["CanEditFile"] = true
-					ctx.Data["EditFileTooltip"] = ctx.Tr("repo.editor.edit_this_file")
-					ctx.Data["HeadRepoLink"] = pull.HeadRepo.Link()
-					ctx.Data["HeadBranchName"] = pull.HeadBranch
-					ctx.Data["BackToLink"] = setting.AppSubURL + ctx.Req.URL.RequestURI()
-				}
-			}
+		if issues_model.CanMaintainerWriteToBranch(ctx, headPerm, pull.HeadBranch, ctx.Doer) {
+			ctx.Data["CanEditFile"] = true
+			ctx.Data["EditFileTooltip"] = ctx.Tr("repo.editor.edit_this_file")
+			ctx.Data["HeadRepoLink"] = pull.HeadRepo.Link()
+			ctx.Data["HeadBranchName"] = pull.HeadBranch
+			ctx.Data["BackToLink"] = setting.AppSubURL + ctx.Req.URL.RequestURI()
 		}
 	}
 
@@ -941,16 +943,7 @@ func UpdatePullRequest(ctx *context.Context) {
 		return
 	}
 
-	if err := issue.PullRequest.LoadBaseRepo(ctx); err != nil {
-		ctx.ServerErrorAuto(err)
-		return
-	}
-	if err := issue.PullRequest.LoadHeadRepo(ctx); err != nil {
-		ctx.ServerErrorAuto(err)
-		return
-	}
-
-	userUpdateStyles, err := pull_service.CheckUserAllowedToUpdate(ctx, issue.PullRequest, ctx.Doer)
+	userUpdateStyles, err := pull_service.CheckUserAllowedToUpdate(ctx, issue.PullRequest, ctx.Doer, ctx.Repo.Permission)
 	if err != nil {
 		ctx.ServerErrorAuto(err)
 		return
@@ -989,6 +982,9 @@ func UpdatePullRequest(ctx *context.Context) {
 				return
 			}
 			ctx.JSONError(flashError)
+			return
+		} else if errors.Is(err, issues_model.ErrQueuedPullHead) {
+			ctx.JSONErrorAuto(err)
 			return
 		}
 		log.Error("Update pull request failed: %v", err)
@@ -1112,7 +1108,16 @@ func MergePullRequest(ctx *context.Context) {
 		}
 	}
 
-	if err := pull_service.Merge(ctx, pr.ID, ctx.Doer, repo_model.MergeStyle(form.Do), form.HeadCommitID, message, false); err != nil {
+	queued, err := mergequeue.EnqueueIfRequired(ctx, ctx.Doer, pr, form.HeadCommitID, form.ForceMerge)
+	if queued {
+		ctx.Flash.Success(ctx.Tr("repo.pulls.merge_queue.added"))
+		ctx.JSONRedirect(issue.Link())
+		return
+	}
+	if err == nil {
+		err = pull_service.Merge(ctx, pr.ID, ctx.Doer, repo_model.MergeStyle(form.Do), form.HeadCommitID, message, false)
+	}
+	if err != nil {
 		if pull_service.IsErrInvalidMergeStyle(err) {
 			ctx.JSONError(ctx.Tr("repo.pulls.invalid_merge_option"))
 		} else if conflictError, ok := err.(pull_service.ErrMergeConflicts); ok {
@@ -1422,6 +1427,8 @@ func UpdatePullRequestTarget(ctx *context.Context) {
 	if err := pull_service.ChangeTargetBranch(ctx, pr, ctx.Doer, targetBranch); err != nil {
 		var prExistsErr issues_model.ErrPullRequestAlreadyExists
 		switch {
+		case errors.Is(err, pull_service.ErrRetargetQueuedPull):
+			ctx.JSONErrorAuto(err)
 		case git_model.IsErrBranchNotExist(err):
 			errorMessage := ctx.Tr("form.target_branch_not_exist")
 
